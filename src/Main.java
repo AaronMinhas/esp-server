@@ -1,16 +1,52 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.*;
 
 public class Main {
+    private static final Logger logger = Logger.getLogger(Main.class.getName());
     private static final int PORT = 8080;
     private static volatile boolean running = false;
     private static ServerSocket serverSocket = null;
     private static final Set<String> acceptedClientIds = new HashSet<>();
 
     static {
+        System.out.println("Logger setup initiated.");
+        try {
+            // TODO: Create Log messages for each action in the code.
+
+            // Create logs directory if it does not exist.
+            Files.createDirectories(Paths.get("logs"));
+
+            // Create log files with timestamp in logs directory.
+            String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+            String logFileName = "logs/" + timeStamp + ".log";
+
+            FileHandler fileHandler = new FileHandler(logFileName, true);
+            fileHandler.setLevel(Level.INFO);
+            fileHandler.setFormatter(new SimpleFormatter());
+            logger.addHandler(fileHandler);
+
+            // Removes logging in console
+            Logger rootLogger = Logger.getLogger("");
+            Handler[] handlers = rootLogger.getHandlers();
+            if (handlers[0] instanceof ConsoleHandler) {
+                rootLogger.removeHandler(handlers[0]);
+            }
+
+            logger.setUseParentHandlers(false);
+
+            logger.log(Level.INFO, "Logger initialised. Logging has started.");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error setting up logger: " + e.getMessage(), e);
+        }
+        System.out.println("Logger setup completed."); // Console msg for successful logging startup
         acceptedClientIds.add("C1");
     }
 
@@ -24,6 +60,7 @@ public class Main {
         synchronized (Main.class) {
             if (running) {
                 System.out.println("Server is already running");
+                logger.log(Level.INFO, "Server is already running");
                 return;
             }
             running = true;
@@ -42,22 +79,20 @@ public class Main {
                     new Thread(() -> processClients(socket)).start();
                 } catch (IOException e) {
                     if (running) {
-                        System.out.println("Error accepting client connection: " + e.getMessage());
-                        e.printStackTrace();
+                        logger.log(Level.SEVERE, "Error accepting client connection: " + e.getMessage(), e);
                     }
                 }
             }
 
         } catch (IOException ex) {
-            System.out.println("Server exception: " + ex.getMessage());
-            ex.printStackTrace();
+            logger.log(Level.SEVERE, "Server exception: " + ex.getMessage(), ex);
         } finally {
             try {
                 if (serverSocket != null && !serverSocket.isClosed()) {
                     serverSocket.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.log(Level.SEVERE, "Error closing server socket: " + e.getMessage(), e);
             }
             synchronized (Main.class) {
                 running = false;
@@ -68,7 +103,7 @@ public class Main {
     private static void processClients(Socket socket) {
         // TODO:
         // Parse JSON for acceptedClientIds and redirect to appropriate classes.
-        // Add class for C1 mailmonitor with required functionality.
+        // Add class for C1 mail monitor with required functionality.
         // Expand CLI commands after above is implemented.
     }
 
@@ -97,7 +132,7 @@ public class Main {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error reading command: " + e.getMessage(), e);
         }
     }
 
@@ -114,7 +149,7 @@ public class Main {
                     serverSocket.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.log(Level.SEVERE, "Error closing server socket: " + e.getMessage(), e);
             }
         }
     }
