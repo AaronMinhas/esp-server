@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -54,7 +56,7 @@ public class Main {
     }
 
     public static void startSocketServer() {
-        // test in cli with telnet localhost 8080
+        // test using TestClient class.
         synchronized (Main.class) {
             if (running) {
                 System.out.println("Server is already running");
@@ -101,10 +103,65 @@ public class Main {
     }
 
     private static void processClients(Socket socket) {
-        // TODO:
-        // Parse JSON for acceptedClientIds and redirect to appropriate classes.
-        // Add class for C1 mail monitor with required functionality.
-        // Expand CLI commands after above is implemented.
+        // TODO: Expand CLI commands after MailMonitor is finalised.
+
+        try {
+            InputStream inputStream = socket.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            OutputStream outputStream = socket.getOutputStream();
+            PrintWriter writer = new PrintWriter(outputStream, true);
+
+            // Read JSON data from client
+            String jsonData = reader.readLine();
+
+            // Parse JSON to get the client ID
+            try {
+                JsonObject jsonObject = JsonParser.parseString(jsonData).getAsJsonObject();
+                String clientId = jsonObject.get("clientId").getAsString();
+
+                // Check if valid Client ID is present.
+                if (acceptedClientIds.contains(clientId)) {
+                    logger.log(Level.INFO, "Client ID " + clientId + " accepted.");
+                    System.out.println("Client ID " + clientId + " accepted.");
+
+                    // Send acceptance response to client
+                    writer.println("Connection accepted for client ID: " + clientId);
+                    // TODO: Expand switch for different clients. Low priority.
+                    // TODO: Consider Thread Pool for Client Handling once multiple clients are added.
+
+                    switch (clientId) {
+                        case "C1":
+                            MailMonitor mailMonitor = new MailMonitor(socket);
+                            mailMonitor.handleClient();
+                            break;
+                        default:
+                            logger.log(Level.WARNING, "Unhandled client ID: " + clientId);
+                            System.out.println("Unhandled client ID: " + clientId);
+                            socket.close();
+                            break;
+                    }
+
+                } else {
+                    logger.log(Level.WARNING, "Client ID " + clientId + " rejected.");
+                    System.out.println("Client ID " + clientId + " rejected.");
+
+                    // Send rejection response to client
+                    writer.println("Connection rejected for client ID: " + clientId);
+
+                    socket.close(); // Close client socket
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Invalid JSON received: " + jsonData, e);
+                System.out.println("Invalid JSON received: " + jsonData);
+
+                writer.println("Invalid JSON format received.");
+
+                socket.close(); // Close client socket
+            }
+
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error processing client: " + e.getMessage(), e);
+        }
     }
 
     private static void commandInterface() {
