@@ -32,3 +32,6 @@ bin/
 
 ### Logs ###
 logs/
+
+# Maven target directory
+/target/
