@@ -19,8 +19,6 @@ public class Main {
     static {
         System.out.println("Logger setup initiated.");
         try {
-            // TODO: Create Log messages for each action in the code.
-
             // Create logs directory if it does not exist.
             Files.createDirectories(Paths.get("logs"));
 
@@ -68,6 +66,7 @@ public class Main {
 
         try {
             serverSocket = new ServerSocket(PORT);
+            logger.log(Level.INFO, "Server started. Listening on port " + PORT);
             System.out.println("Server is listening on port " + PORT);
             System.out.println("Available commands: start, stop, restart, exit");
 
@@ -75,8 +74,9 @@ public class Main {
                 try {
                     Socket socket = serverSocket.accept();
                     System.out.println("Client connected.");
+                    logger.log(Level.INFO, "Client connected.");
 
-                    new Thread(() -> processClients(socket)).start();
+                            new Thread(() -> processClients(socket)).start();
                 } catch (IOException e) {
                     if (running) {
                         logger.log(Level.SEVERE, "Error accepting client connection: " + e.getMessage(), e);
@@ -143,7 +143,8 @@ public class Main {
                 return;
             }
             System.out.println("Server stopped.");
-            running = false;
+            logger.log(Level.INFO, "Server stopped.");
+                    running = false;
             try {
                 if (serverSocket != null && !serverSocket.isClosed()) {
                     serverSocket.close();
@@ -156,6 +157,7 @@ public class Main {
 
     private static void restartServer() {
         System.out.println("Restart initiated.");
+        logger.log(Level.INFO, "Restart initiated.");
         stopServer();
         new Thread(Main::startSocketServer).start();
     }
@@ -163,6 +165,7 @@ public class Main {
     private static void exitServer() {
         System.out.println("Exit initiated.");
         stopServer();
+        logger.log(Level.INFO, "Server shutdown.");
         System.exit(0);
     }
 }
